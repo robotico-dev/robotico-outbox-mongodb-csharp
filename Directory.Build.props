@@ -1,0 +1,26 @@
+<Project>
+  <PropertyGroup>
+    <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <WarningLevel>8</WarningLevel>
+    <AnalysisLevel>latest-all</AnalysisLevel>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <Version>0.1.0</Version>
+    <Authors>Robotico</Authors>
+    <Company>Robotico</Company>
+    <Product>Robotico.Outbox.MongoDb</Product>
+    <Copyright>Copyright © Robotico</Copyright>
+    <RepositoryType>git</RepositoryType>
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    <AnalysisMode>All</AnalysisMode>
+    <PackageId>Robotico.Outbox.MongoDb</PackageId>
+    <Title>Robotico.Outbox.MongoDb</Title>
+    <Description>IOutbox with outbox collection in same MongoDB; optional background processor. Depends on Robotico.Outbox, Robotico.Result, MongoDB.Driver.</Description>
+    <PackageTags>outbox;mongodb;robotico</PackageTags>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+  </PropertyGroup>
+</Project>

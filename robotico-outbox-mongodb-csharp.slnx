@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Robotico.Outbox.MongoDb/Robotico.Outbox.MongoDb.csproj" />
+  </Folder>
+</Solution>
