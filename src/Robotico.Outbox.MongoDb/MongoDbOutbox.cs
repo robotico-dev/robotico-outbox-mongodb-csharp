@@ -1,8 +1,6 @@
 using System.Text.Json;
 using MongoDB.Bson;
 using MongoDB.Driver;
-using Robotico.Outbox;
-using Robotico.Result;
 using Robotico.Result.Errors;
 
 namespace Robotico.Outbox.MongoDb;
@@ -14,14 +12,14 @@ namespace Robotico.Outbox.MongoDb;
 /// <para>Use the same <see cref="IClientSessionHandle"/> for domain operations and this outbox so that <see cref="CommitAsync"/> commits one transaction including both outbox inserts and domain writes.</para>
 /// <para>Start the session and transaction before enqueueing; then call <see cref="CommitAsync"/> to persist.</para>
 /// </remarks>
-public sealed class MongoDbOutbox(IMongoDatabase database, IClientSessionHandle? session = null, string collectionName = "Outbox") : IOutbox
+public sealed class MongoDbOutbox(IMongoDatabase database, IClientSessionHandle? session = null, string collectionName = "Outbox") : Robotico.Outbox.IOutbox
 {
     private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = false };
     private readonly IMongoCollection<BsonDocument> _collection = database.GetCollection<BsonDocument>(collectionName);
 
     /// <inheritdoc />
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="message"/> is null.</exception>
-    public Task<Robotico.Result.Result> EnqueueAsync(object message, CancellationToken cancellationToken = default)
+    public async Task<Robotico.Result.Result> EnqueueAsync(object message, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(message);
         cancellationToken.ThrowIfCancellationRequested();
@@ -29,7 +27,7 @@ public sealed class MongoDbOutbox(IMongoDatabase database, IClientSessionHandle?
         {
             string payload = JsonSerializer.Serialize(message, JsonOptions);
             string messageType = message.GetType().AssemblyQualifiedName ?? message.GetType().FullName ?? "Unknown";
-            var doc = new BsonDocument
+            BsonDocument doc = new()
             {
                 ["_id"] = ObjectId.GenerateNewId(),
                 ["MessageType"] = messageType,
@@ -38,18 +36,18 @@ public sealed class MongoDbOutbox(IMongoDatabase database, IClientSessionHandle?
             };
             if (session is null)
             {
-                _collection.InsertOne(doc);
+                await _collection.InsertOneAsync(doc, cancellationToken: cancellationToken).ConfigureAwait(false);
             }
             else
             {
-                _collection.InsertOne(session, doc);
+                await _collection.InsertOneAsync(session, doc, cancellationToken: cancellationToken).ConfigureAwait(false);
             }
 
-            return Task.FromResult(Robotico.Result.Result.Success());
+            return Robotico.Result.Result.Success();
         }
         catch (MongoException ex)
         {
-            return Task.FromResult(Robotico.Result.Result.Error(new ExceptionError(ex)));
+            return Robotico.Result.Result.Error(new ExceptionError(ex));
         }
     }
 

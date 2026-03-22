@@ -10,7 +10,8 @@ public sealed class MongoDbOutboxTests
 {
     private static IMongoDatabase GetDatabase()
     {
-        var client = new MongoClient("mongodb://localhost:27017");
+        string connectionString = Environment.GetEnvironmentVariable("ROBOTICO_MONGO_CONNECTION") ?? "mongodb://127.0.0.1:27017";
+        MongoClient client = new(connectionString);
         return client.GetDatabase("RoboticoOutboxTests");
     }
 
@@ -18,7 +19,7 @@ public sealed class MongoDbOutboxTests
     public async Task EnqueueAsync_throws_ArgumentNullException_when_message_is_null()
     {
         IMongoDatabase database = GetDatabase();
-        var outbox = new MongoDbOutbox(database, null, "Outbox");
+        MongoDbOutbox outbox = new(database, null, "Outbox");
 
         await Assert.ThrowsAsync<ArgumentNullException>(() => outbox.EnqueueAsync(null!));
     }
@@ -27,8 +28,8 @@ public sealed class MongoDbOutboxTests
     public async Task EnqueueAsync_throws_OperationCanceledException_when_cancellation_requested()
     {
         IMongoDatabase database = GetDatabase();
-        var outbox = new MongoDbOutbox(database, null, "Outbox");
-        using var cts = new CancellationTokenSource();
+        MongoDbOutbox outbox = new(database, null, "Outbox");
+        using CancellationTokenSource cts = new();
         await cts.CancelAsync();
 
         await Assert.ThrowsAsync<OperationCanceledException>(() => outbox.EnqueueAsync(new object(), cts.Token));
@@ -38,7 +39,7 @@ public sealed class MongoDbOutboxTests
     public async Task CommitAsync_returns_success_when_session_is_null()
     {
         IMongoDatabase database = GetDatabase();
-        var outbox = new MongoDbOutbox(database, null, "Outbox");
+        MongoDbOutbox outbox = new(database, null, "Outbox");
 
         Robotico.Result.Result result = await outbox.CommitAsync();
 
@@ -49,8 +50,8 @@ public sealed class MongoDbOutboxTests
     public async Task CommitAsync_throws_OperationCanceledException_when_cancellation_requested()
     {
         IMongoDatabase database = GetDatabase();
-        var outbox = new MongoDbOutbox(database, null, "Outbox");
-        using var cts = new CancellationTokenSource();
+        MongoDbOutbox outbox = new(database, null, "Outbox");
+        using CancellationTokenSource cts = new();
         await cts.CancelAsync();
 
         await Assert.ThrowsAsync<OperationCanceledException>(() => outbox.CommitAsync(cts.Token));
