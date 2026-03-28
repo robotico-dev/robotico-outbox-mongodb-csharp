@@ -1,3 +1,4 @@
+using MongoDB.Bson;
 using MongoDB.Driver;
 using Xunit;
 
@@ -13,6 +14,51 @@ public sealed class MongoDbOutboxTests
         string connectionString = Environment.GetEnvironmentVariable("ROBOTICO_MONGO_CONNECTION") ?? "mongodb://127.0.0.1:27017";
         MongoClient client = new(connectionString);
         return client.GetDatabase("RoboticoOutboxTests");
+    }
+
+    [Fact]
+    public async Task EnqueueAsync_without_session_inserts_document()
+    {
+        IMongoDatabase database = GetDatabase();
+        string collectionName = "outbox_" + Guid.NewGuid().ToString("N");
+        MongoDbOutbox outbox = new(database, null, collectionName);
+        OutboxTestMessage message = new() { Id = 42, Name = "test" };
+
+        Robotico.Result.Result result = await outbox.EnqueueAsync(message);
+
+        Assert.True(result.IsSuccess());
+        long count = await database.GetCollection<BsonDocument>(collectionName)
+            .CountDocumentsAsync(FilterDefinition<BsonDocument>.Empty);
+        Assert.Equal(1, count);
+    }
+
+    [Fact]
+    public async Task EnqueueAsync_with_session_and_CommitAsync_persists_after_transaction()
+    {
+        string connectionString = Environment.GetEnvironmentVariable("ROBOTICO_MONGO_CONNECTION") ?? "mongodb://127.0.0.1:27017";
+        MongoClient client = new(connectionString);
+        IMongoDatabase database = client.GetDatabase("RoboticoOutboxTests");
+        string collectionName = "outbox_sess_" + Guid.NewGuid().ToString("N");
+        IClientSessionHandle session = await client.StartSessionAsync();
+        try
+        {
+            session.StartTransaction();
+            MongoDbOutbox outbox = new(database, session, collectionName);
+            OutboxTestMessage message = new() { Id = 7, Name = "tx" };
+
+            Robotico.Result.Result enqueue = await outbox.EnqueueAsync(message);
+            Assert.True(enqueue.IsSuccess());
+            Robotico.Result.Result commit = await outbox.CommitAsync();
+            Assert.True(commit.IsSuccess());
+
+            long count = await database.GetCollection<BsonDocument>(collectionName)
+                .CountDocumentsAsync(FilterDefinition<BsonDocument>.Empty);
+            Assert.Equal(1, count);
+        }
+        finally
+        {
+            session.Dispose();
+        }
     }
 
     [Fact]
